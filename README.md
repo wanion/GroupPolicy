@@ -19,10 +19,10 @@ Example creation of an audit report:
 $audit = Get-GPAudit
 # Filter down to just the properties you're interested in saving
 $audit = $audit | select displayname, recommendedaction, notes, gpostatus, emptyusersection, emptycomputersection, linkname, wmifiltername, PermissionsApply, linkpath, wmifilterquery, wmifilterdescription, permissionsother, creationtime, modificationtime, description, id
-# Sort the way you want
+# Sort results
 $audit = $audit | sort recommendedaction,notes,linkname,displayname
 # Save into file
-export-csv -path export.csv -notype
+$audit | export-csv -path export.csv -notype
 ```
 
 ## Scripts
@@ -34,6 +34,7 @@ Gets WMI filters from Active Directory. Useful as a complement to Backup-GPO to 
 ### Get-GPAudit.ps1
 
 **Requires** Group Policy module (Windows Server 2008 R2 with Group Policy Management Console or Windows 7 with Remote Server Administration Tools)
+
 **Depends** Get-GPWmiFilter
 
 Creates a report of group policy objects with recommendations on which could potentially be deleted and reasons why (usually because they're not longer being applied).

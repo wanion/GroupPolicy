@@ -1,20 +1,14 @@
-# Group Policy scripts
+# Group Policy PowerShell scripts
 
-A couple of scripts I put together for my own use. Both could use a little tidying but shouldn't be difficult to adapt as they are.
+Scripts I put together to query Group Policy related information.
 
-## export-wmifilters.ps1
+## Get-GPWmiFilters.ps1
 
-Saves a text file containing all the WMI filters in the current domain. Useful complement to backup-gpo cmdlet.
+Gets WMI filters from Active Directory. Useful as a complement to Backup-GPO to back up WMI filters.
 
-You'll want to modify the path it saves to:
+## Get-GPAudit.ps1
 
-```powershell
-$path = new-item -path ("{0}\{1}" -f (Split-Path -parent $MyInvocation.MyCommand.Definition), "GPO_" + (get-date -uformat "%Y-%m-%d")) -Type directory -force
-```
-
-## new-gpreport.ps1
-
-> Requires: Group Policy module
+> Requires: Group Policy module (Windows Server 2008 R2 with Group Policy Management Console or Windows 7 with Remote Server Administration Tools)
 
 Creates a report of group policy objects with recommendations on which could potentially be deleted and reasons why (usually because they're not longer being applied).
 

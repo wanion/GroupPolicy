@@ -42,6 +42,7 @@ function Get-GPAudit {
       if ($this.gpostatus -eq "AllSettingsDisabled") { return "Disabled already." }
       if (($this.gpostatus -eq "UserSettingsDisabled") -and $this.EmptyComputerSection) { return "Enabled section is empty." }
       if (($this.gpostatus -eq "ComputerSettingsDisabled") -and $this.EmptyUserSection) { return "Enabled section is empty." }
+      if ($this.EmptyComputerSection -and $this.EmptyUserSection) { return "Both sections are empty." }
       if ($this.linkname -eq "Group Policies") { return "Linked in a location that has no effect." }
       if ($this.linkname -eq "") { return "Not linked." }
       if ($this.permissionsapply -eq "") { return "No Apply permissions." }
@@ -58,6 +59,7 @@ function Get-GPAudit {
       if ($this.gpostatus -eq "AllSettingsDisabled") { return "delete" }
       if (($this.gpostatus -eq "UserSettingsDisabled") -and $this.EmptyComputerSection) { return "delete" }
       if (($this.gpostatus -eq "ComputerSettingsDisabled") -and $this.EmptyUserSection) { return "delete" }
+      if ($this.EmptyComputerSection -and $this.EmptyUserSection) { return "delete" }
       if ($this.linkname -eq "Group policies") { return "delete" }
       if ($this.linkname -eq "") { return "delete" }
       if ($this.permissionsapply -eq "") { return "delete" }

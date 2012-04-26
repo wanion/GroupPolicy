@@ -1,7 +1,20 @@
 function Get-GPWMIFilter() {
+  Param(
+    [guid]$guid,
+    [switch]$all
+  )
+
+  if ($guid -eq $null -and $all -ne $true) {
+    throw "Please specify either -Guid or -All."
+  }
+
   # Set up query
   $searcher = New-Object System.DirectoryServices.DirectorySearcher
-  $searcher.Filter = "(objectclass=msWMI-Som)"
+  if ($guid -eq $null) {
+    $searcher.Filter = "(objectclass=msWMI-Som)"
+  } else {
+    $searcher.Filter = "(&(objectclass=msWMI-Som)(cn={{{0}}}))" -f $guid.ToString()
+  }
 
   # Select properties to retrieve
   $properties = @("mswmi-name", "mswmi-parm1", "mswmi-parm2", "cn")

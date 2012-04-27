@@ -2,7 +2,7 @@ Import-Module GroupPolicy
 . (Join-Path (Split-Path $MyInvocation.MyCommand.Path) Get-GPWMIFilter.ps1)
 
 function Get-GPAudit {
-  $GroupPolicyObjects = get-gpo -all
+  $GroupPolicyObjects = @(get-gpo -all)
   $GPOCount = $GroupPolicyObjects.Count
   $ProgressCount = 1
   foreach ($gpo in $GroupPolicyObjects) {

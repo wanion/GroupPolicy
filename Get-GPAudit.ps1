@@ -30,13 +30,32 @@ function Get-GPAudit {
       WmiFilterName = $wmifilter.Name
       WmiFilterQuery = $wmifilter.RawQuery
       WmiFilterDescription = $wmifilter.Description
-      LinkName = [string]::join(";", @( $report.gpo.linksto | % { $_.SomName }) )
-      LinkPath = [string]::join(";", @( $report.gpo.linksto | % { $_.SomPath }) )
+      Links = @( $report.gpo.linksto | % { new-object psobject -property @{
+            Name = $_.SOMName
+            Path = $_.SOMPath
+            Enabled = $_.Enabled
+            NoOverride = $_.NoOverride -eq "true"
+          }
+        }
+      )
       PermissionsApply = [string]::join(", ", @($Permissions | where { $_.permission -eq "GpoApply" } | % { if ($_.Trustee.Name -eq $null) { $_.trustee.sid.value } else { $_.Trustee.Name } }))
       PermissionsOther = [string]::join(", ", @($Permissions | where { $_.permission -ne "GpoApply" } | % { "{0}: {1}" -f $_.Trustee.Name, $_.Permission }))
       Description = $gpo.Description
       EmptyUserSection = $HasUserSection -eq $false
       EmptyComputerSection = $HasComputerSection -eq $false
+    }
+    $gpsummary | add-member -membertype scriptproperty -name LinkName -value {
+      return [string]::join(";", @( $this.links | % {
+        if ($_.Name -ne $null) {
+          $Name = $_.Name
+          if ($_.Enabled -eq $false) { $Name += " [Disabled]" }
+          if ($_.NoOverride) { $Name += " [NoOverride]" }
+          $Name
+        }
+      }) )
+    }
+    $gpsummary | add-member -membertype scriptproperty -name LinkPath -value {
+      [string]::join(";", @( $this.links | % { $_.Path }) )
     }
     $gpsummary | add-member -membertype scriptproperty -name Notes -value {
       if ($this.gpostatus -eq "AllSettingsDisabled") { return "Disabled already." }

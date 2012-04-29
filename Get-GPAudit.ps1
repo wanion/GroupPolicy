@@ -116,6 +116,9 @@ function Get-GPAudit {
     if ((($gpsummary.gpostatus -eq "UserSettingsDisabled") -and $gpsummary.EmptyUserSection -ne $true) -or (($gpsummary.gpostatus -eq "ComputerSettingsDisabled") -and $gpsummary.EmptyComputerSection -ne $true)) {
       $gpsummary.Notes += "Disabled section is not empty"
     }
+    if ($gpsummary.PermissionsOther -match "GpoCustom") {
+      $gpsummary.Notes += "ACL contains custom permissions (may mean Apply is denied in some cases)"
+    }
 
     $gpsummary.Notes = [string]::join("; ", $gpsummary.Notes) # Change notes from array to string
 

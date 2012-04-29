@@ -81,6 +81,14 @@ function Get-GPAudit {
       $gpsummary.Notes += "Both sections are empty"
       $gpsummary.RecommendedAction= "delete"
     }
+    $DisabledLinkCount = 0
+    foreach ($link in $gpsummary.links) {
+      if ($link.Enabled -eq $false) { $DisabledLinkCount++ }
+    }
+    if ($DisabledLinkCount -eq $gpsummary.links.count) {
+      $gpsummary.Notes +=  "All links disabled"
+      $gpsummary.RecommendedAction= "delete"
+    }
     if (($gpsummary.linkname -match "^Group Policies") -and ($gpsummary.Links.Count -eq 1)) {
       $gpsummary.Notes += "Link target has no effect"
       $gpsummary.RecommendedAction= "delete"

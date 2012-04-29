@@ -15,6 +15,11 @@ function Get-GPAudit {
     $report = [xml](Get-GPOReport -Guid $gpo.id -ReportType XML)
     $HasUserSection = $report.gpo.user.versionsysvol -gt 0
     $HasComputerSection = $report.GPO.Computer.VersionSysvol -gt 0
+    switch ($gpo.GpoStatus) {
+      "ComputerSettingsDisabled" { $GpoStatus = "UserSettingsEnabled" }
+      "UserSettingsDisabled" { $GpoStatus = "ComputerSettingsEnabled" }
+      default { $GpoStatus = $gpo.GpoStatus }
+    }
     $Permissions = Get-GPPermissions -Id $gpo.id -All
     $gpsummary = new-object psobject -Property @{
       Id = $gpo.id
@@ -26,7 +31,7 @@ function Get-GPAudit {
       ModificationTime = $gpo.ModificationTime
       User = $gpo.User
       Computer = $gpo.Computer
-      GpoStatus = $gpo.GpoStatus
+      GpoStatus = $GpoStatus
       WmiFilterName = $wmifilter.Name
       WmiFilterQuery = $wmifilter.RawQuery
       WmiFilterDescription = $wmifilter.Description
@@ -41,8 +46,8 @@ function Get-GPAudit {
       PermissionsApply = [string]::join(", ", @($Permissions | where { $_.permission -eq "GpoApply" } | % { if ($_.Trustee.Name -eq $null) { $_.trustee.sid.value } else { $_.Trustee.Name } }))
       PermissionsOther = [string]::join(", ", @($Permissions | where { $_.permission -ne "GpoApply" } | % { "{0}: {1}" -f $_.Trustee.Name, $_.Permission }))
       Description = $gpo.Description
-      EmptyUserSection = $HasUserSection -eq $false
-      EmptyComputerSection = $HasComputerSection -eq $false
+      HasUserSection = $HasUserSection
+      HasComputerSection = $HasComputerSection
       RecommendedAction = ""
       Notes = @() # Placeholder array
     }
@@ -73,11 +78,11 @@ function Get-GPAudit {
       $gpsummary.Notes +=  "All settings disabled"
       $gpsummary.RecommendedAction= "delete"
     }
-    if ((($gpsummary.gpostatus -eq "UserSettingsDisabled") -and $gpsummary.EmptyComputerSection) -or (($gpsummary.gpostatus -eq "ComputerSettingsDisabled") -and $gpsummary.EmptyUserSection)) {
+    if (($gpsummary.gpostatus -eq "ComputerSettingsEnabled" -and $gpsummary.HasComputerSection -eq $false) -or ($gpsummary.gpostatus -eq "UserSettingsEnabled" -and $gpsummary.HasUserSection -eq $false)) {
       $gpsummary.Notes += "Enabled section is empty"
       $gpsummary.RecommendedAction= "delete"
     }
-    if ($gpsummary.EmptyComputerSection -and $gpsummary.EmptyUserSection) {
+    if (-not $gpsummary.HasComputerSection -and -not $gpsummary.HasUserSection) {
       $gpsummary.Notes += "Both sections are empty"
       $gpsummary.RecommendedAction= "delete"
     }
@@ -89,7 +94,7 @@ function Get-GPAudit {
       $gpsummary.Notes +=  "All links disabled"
       $gpsummary.RecommendedAction= "delete"
     }
-    if (($gpsummary.linkname -match "^Group Policies") -and ($gpsummary.Links.Count -eq 1)) {
+    if ($gpsummary.linkname -match "^Group Policies" -and ($gpsummary.Links.Count -eq 1)) {
       $gpsummary.Notes += "Link target has no effect"
       $gpsummary.RecommendedAction= "delete"
     }
@@ -105,7 +110,7 @@ function Get-GPAudit {
        $gpsummary.Notes +=  "Objects policy applied to have been deleted"
        $gpsummary.RecommendedAction= "delete"
     }
-    if (($gpsummary.displayname -match "test") -and (get-date).addmonths(-3) -gt $gpsummary.modificationtime) { 
+    if ($gpsummary.displayname -match "test" -and (get-date).addmonths(-3) -gt $gpsummary.modificationtime) { 
       $gpsummary.Notes += "Old test policy (last modification >3 months ago)"
       $gpsummary.RecommendedAction= "delete"
     }
@@ -113,7 +118,7 @@ function Get-GPAudit {
       $gpsummary.Notes += "Applies to a single user"
       $gpsummary.RecommendedAction= "delete"
     }
-    if ((($gpsummary.gpostatus -eq "UserSettingsDisabled") -and $gpsummary.EmptyUserSection -ne $true) -or (($gpsummary.gpostatus -eq "ComputerSettingsDisabled") -and $gpsummary.EmptyComputerSection -ne $true)) {
+    if (($gpsummary.gpostatus -eq "UserSettingsDisabled" -and $gpsummary.HasUserSection) -or ($gpsummary.gpostatus -eq "ComputerSettingsDisabled" -and $gpsummary.HasComputerSection)) {
       $gpsummary.Notes += "Disabled section is not empty"
     }
     if ($gpsummary.PermissionsOther -match "GpoCustom") {

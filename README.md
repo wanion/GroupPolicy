@@ -18,11 +18,11 @@ Example creation of an audit report:
 # Create an audit
 $audit = Get-GPAudit
 # Filter down to just the properties you're interested in saving
-$audit = $audit | select displayname, recommendedaction, notes, gpostatus, emptyusersection, emptycomputersection, linkname, wmifiltername, PermissionsApply, linkpath, wmifilterquery, wmifilterdescription, permissionsother, creationtime, modificationtime, description, id
+$filteredaudit = $audit | select displayname, recommendedaction, notes, gpostatus, hasusersection, hascomputersection, linkname, wmifiltername, PermissionsApply, linkpath, wmifilterquery, wmifilterdescription, permissionsother, creationtime, modificationtime, description, id
 # Sort results
-$audit = $audit | sort recommendedaction,notes,linkname,displayname
+$sortedaudit = $filteredaudit | sort recommendedaction,notes,linkname,displayname
 # Save into file
-$audit | export-csv -path export.csv -notype
+$sortedaudit | export-csv -path export.csv -notype -force
 ```
 
 ## Scripts

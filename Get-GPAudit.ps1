@@ -119,6 +119,9 @@ function Get-GPAudit {
     if ($gpsummary.PermissionsOther -match "GpoCustom") {
       $gpsummary.Notes += "ACL contains custom permissions (may mean Apply is denied in some cases)"
     }
+    if ($gpsummary.LinkName -match "\[NoOverride\]") {
+      $gpsummary.Notes += "At least one link is marked NoOverride (possibly unnecessary, verify if required)"
+    }
 
     $gpsummary.Notes = [string]::join("; ", $gpsummary.Notes) # Change notes from array to string
 

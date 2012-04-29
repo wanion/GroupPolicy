@@ -43,6 +43,8 @@ function Get-GPAudit {
       Description = $gpo.Description
       EmptyUserSection = $HasUserSection -eq $false
       EmptyComputerSection = $HasComputerSection -eq $false
+      RecommendedAction = ""
+      Notes = @() # Placeholder array
     }
     $gpsummary | add-member -membertype scriptproperty -name LinkName -value {
       return [string]::join(";", @( $this.links | % {
@@ -57,38 +59,59 @@ function Get-GPAudit {
     $gpsummary | add-member -membertype scriptproperty -name LinkPath -value {
       [string]::join(";", @( $this.links | % { $_.Path }) )
     }
-    $gpsummary | add-member -membertype scriptproperty -name Notes -value {
-      if ($this.gpostatus -eq "AllSettingsDisabled") { return "Disabled already." }
-      if (($this.gpostatus -eq "UserSettingsDisabled") -and $this.EmptyComputerSection) { return "Enabled section is empty." }
-      if (($this.gpostatus -eq "ComputerSettingsDisabled") -and $this.EmptyUserSection) { return "Enabled section is empty." }
-      if ($this.EmptyComputerSection -and $this.EmptyUserSection) { return "Both sections are empty." }
-      if ($this.linkname -eq "Group Policies") { return "Linked in a location that has no effect." }
-      if ($this.linkname -eq "") { return "Not linked." }
-      if ($this.permissionsapply -eq "") { return "No Apply permissions." }
-      if ($this.permissionsapply -match '^[S0-9\-,]+$') { return "Objects policy applies to have been deleted." }
-      if (($this.displayname -match "test") -and (get-date).addmonths(-3) -gt $this.modificationtime) { return "Old test policy (last modification >3 months ago)." }
-      if ($this.permissionsapply -match '^[A-Z]+$') { return "Applies to a single user." }
-      if ($this.displayname -match "_") { return "Poorly named (contains underscores)." }
-      if (($this.displayname -match " ") -eq $false) { return "Poorly named (no spaces)." }
-      if (($this.gpostatus -eq "UserSettingsDisabled") -and $this.EmptyUserSection -ne $true) { return "Disabled section is not empty." }
-      if (($this.gpostatus -eq "ComputerSettingsDisabled") -and $this.EmptyComputerSection -ne $true) { return "Disabled section is not empty." }
-      return ""
+
+    # Determine recommended action for this policy
+    if ($gpsummary.displayname -match "_") {
+      $gpsummary.Notes += "Poorly named (contains underscores)"
+      $gpsummary.RecommendedAction= "rename"
     }
-    $gpsummary | add-member -membertype scriptproperty -name RecommendedAction -pass -value {
-      if ($this.gpostatus -eq "AllSettingsDisabled") { return "delete" }
-      if (($this.gpostatus -eq "UserSettingsDisabled") -and $this.EmptyComputerSection) { return "delete" }
-      if (($this.gpostatus -eq "ComputerSettingsDisabled") -and $this.EmptyUserSection) { return "delete" }
-      if ($this.EmptyComputerSection -and $this.EmptyUserSection) { return "delete" }
-      if ($this.linkname -eq "Group policies") { return "delete" }
-      if ($this.linkname -eq "") { return "delete" }
-      if ($this.permissionsapply -eq "") { return "delete" }
-      if ($this.permissionsapply -match '^[S0-9\-,]+$') { return "delete" }
-      if (($this.displayname -match "test") -and (get-date).addmonths(-3) -gt $this.modificationtime) { return "delete" }
-      if ($this.permissionsapply -match '^[A-Z]+$') { return "delete" }
-      if ($this.displayname -match "_") { return "rename" }
-      if (($this.displayname -match " ") -eq $false) { return "rename" }
-      return ""
+    if (($gpsummary.displayname -match " ") -eq $false) {
+      $gpsummary.Notes += "Poorly named (no spaces)"
+      $gpsummary.RecommendedAction= "rename"
     }
+    if ($gpsummary.gpostatus -eq "AllSettingsDisabled") { 
+      $gpsummary.Notes +=  "All settings disabled"
+      $gpsummary.RecommendedAction= "delete"
+    }
+    if ((($gpsummary.gpostatus -eq "UserSettingsDisabled") -and $gpsummary.EmptyComputerSection) -or (($gpsummary.gpostatus -eq "ComputerSettingsDisabled") -and $gpsummary.EmptyUserSection)) {
+      $gpsummary.Notes += "Enabled section is empty"
+      $gpsummary.RecommendedAction= "delete"
+    }
+    if ($gpsummary.EmptyComputerSection -and $gpsummary.EmptyUserSection) {
+      $gpsummary.Notes += "Both sections are empty"
+      $gpsummary.RecommendedAction= "delete"
+    }
+    if (($gpsummary.linkname -match "^Group Policies") -and ($gpsummary.Links.Count -eq 1)) {
+      $gpsummary.Notes += "Link target has no effect"
+      $gpsummary.RecommendedAction= "delete"
+    }
+    if ($gpsummary.linkname -eq "") {
+      $gpsummary.Notes += "No links"
+      $gpsummary.RecommendedAction= "delete"
+    }
+    if ($gpsummary.permissionsapply -eq "") {
+      $gpsummary.Notes += "No Apply permissions"
+      $gpsummary.RecommendedAction= "delete"
+    }
+    if ($gpsummary.permissionsapply -match '^[S0-9\-,]+$') {
+       $gpsummary.Notes +=  "Objects policy applied to have been deleted"
+       $gpsummary.RecommendedAction= "delete"
+    }
+    if (($gpsummary.displayname -match "test") -and (get-date).addmonths(-3) -gt $gpsummary.modificationtime) { 
+      $gpsummary.Notes += "Old test policy (last modification >3 months ago)"
+      $gpsummary.RecommendedAction= "delete"
+    }
+    if ($gpsummary.permissionsapply -match '^[A-Z]+$') {
+      $gpsummary.Notes += "Applies to a single user"
+      $gpsummary.RecommendedAction= "delete"
+    }
+    if ((($gpsummary.gpostatus -eq "UserSettingsDisabled") -and $gpsummary.EmptyUserSection -ne $true) -or (($gpsummary.gpostatus -eq "ComputerSettingsDisabled") -and $gpsummary.EmptyComputerSection -ne $true)) {
+      $gpsummary.Notes += "Disabled section is not empty"
+    }
+
+    $gpsummary.Notes = [string]::join("; ", $gpsummary.Notes) # Change notes from array to string
+
+    $gpsummary
   }
 
   Write-Progress -Activity "Auditing Group Policy objects." -Status "GPOs processed %" -Completed

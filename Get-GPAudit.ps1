@@ -8,8 +8,8 @@ function Get-GPAudit {
   foreach ($gpo in $GroupPolicyObjects) {
     $Progress = [int]($ProgressCount++ / $GPOCount * 100)
     Write-Progress -Activity "Auditing Group Policy objects." -Status ("GPOs processed: {0,2}%" -f $Progress) -CurrentOperation ("Current policy object: {0}" -f $gpo.DisplayName) -PercentComplete $Progress
-    if ($gpo.WmiFilter -ne $null) {
-      $filterguid = $gpo.wmifilter.path -match "\{.+\}"
+    $wmifilter = new-object psobject
+    if ($gpo.wmifilter.path -match "\{.+\}") {
       $wmifilter = Get-GPWMIFilter -guid $matches[0]
     }
     $report = [xml](Get-GPOReport -Guid $gpo.id -ReportType XML)

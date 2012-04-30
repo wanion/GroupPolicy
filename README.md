@@ -39,16 +39,21 @@ Gets WMI filters from Active Directory. Useful as a complement to Backup-GPO to 
 
 Creates a report of group policy objects with recommendations on which could potentially be deleted and reasons why (usually because they're not longer being applied).
 
-Examples of detected issues:
+Reports the following issues:
 
-* Not linked in any locations.
-* Linked to "Group Policies" OU (*who does this?*).
-* All settings disabled.
-* Computer settings disabled and user settings empty.
-* User settings disabled and computer settings empty.
-* No user, group, or computer has permission to apply policy.
-* ACLs where only trustees with Apply permission are unresolvable SIDs (i.e. policy applies to objects that have now been deleted from AD).
-* Policy only applies to a single user.
-* Policy contains 'test' in the name and is older than 3 months.
+* Poorly named (contains underscores or no spaces)
+* All settings disabled
+* Enabled section is empty
+* Both sections are empty
+* All links disabled
+* Link target has no effect
+* No links
+* No Apply permissions
+* Objects policy applied to have been deleted
+* Old test policy (last modification >3 months ago)
+* Applies to a single user
+* Disabled section is not empty
+* ACL contains custom permissions (may mean Apply is denied in some cases)
+* At least one link is marked NoOverride (possibly unnecessary, verify if required)
 
-It also recommends renaming policies that are poorly named (currently catches policies that contain no spaces in the name or that contain underscores).
+It recommends actions for each policy (rename or delete) based on issues found.

@@ -1,5 +1,8 @@
 function Get-GpoLinks {
-  $links = adfind -default -f "|(objectclass=organizationalunit)(objectclass=domain)" -list distinguishedname | % { get-gpinheritance $_ }
+  $searcher = new-object system.directoryservices.directorysearcher
+  $searcher.filter = "(|(objectclass=organizationalunit)(objectclass=domain))"
+  $searcher.propertiestoload.add("distinguishedname") | out-null
+  $links = $searcher.findall() | % { get-gpinheritance $_.properties.distinguishedname }
 
   foreach ($link in $links) {
     new-object psobject -property @{
